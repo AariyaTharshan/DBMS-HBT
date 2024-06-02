@@ -2,121 +2,94 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUserPlus, faDollarSign, faMoneyBillWave, faChartLine, faChartPie, faBalanceScale, faListAlt, faUser } from '@fortawesome/free-solid-svg-icons';
+import { faUserPlus, faDollarSign, faMoneyBillWave, faChartLine, faChartPie, faBalanceScale, faListAlt } from '@fortawesome/free-solid-svg-icons';
 
 const Dashboard = () => {
-  const [totalIncome, setTotalIncome] = useState(null);
-  const [totalExpense, setTotalExpense] = useState(null);
-  const [username, setUsername] = useState('');
-  const [inputUsername, setInputUsername] = useState('');
+  const [totals, setTotals] = useState({ totalIncome: 0, totalExpense: 0 });
 
   useEffect(() => {
-    if (username) {
-      const fetchTotalIncome = async () => {
-        try {
-          const response = await axios.get(`http://localhost:3000/total-income/${username}`);
-          setTotalIncome(response.data.totalIncome);
-        } catch (error) {
-          console.error('Error fetching total income:', error);
-        }
-      };
+    const fetchTotalStats = async () => {
+      try {
+        const token = localStorage.getItem('accessToken');
+        const response = await axios.get('http://localhost:3000/total-stats', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        setTotals(response.data);
+      } catch (error) {
+        console.error('Error fetching total stats:', error);
+      }
+    };
 
-      const fetchTotalExpense = async () => {
-        try {
-          const response = await axios.get(`http://localhost:3000/total-expense/${username}`);
-          setTotalExpense(response.data.totalExpense);
-        } catch (error) {
-          console.error('Error fetching total expense:', error);
-        }
-      };
+    fetchTotalStats();
 
-      fetchTotalIncome();
-      fetchTotalExpense();
-    }
-  }, [username]);
+    // Block scrolling when component mounts
+    document.body.style.overflow = 'hidden';
 
-  const handleFetchStats = () => {
-    setUsername(inputUsername);
-  };
+    // Re-enable scrolling when component unmounts
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, []);
+
 
   return (
     <div className="bg-gray-100 min-h-screen flex items-center justify-center">
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-4xl font-bold mb-8 text-center text-gray-800">Dashboard</h1>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 gap-6 mb-8">
           <Link
             to="/addmemberform"
-            className="bg-white shadow p-6 rounded-lg text-center text-lg font-semibold text-gray-700 hover:text-blue-600 transition duration-300 flex items-center justify-center"
+            className="dashboard-link bg-white shadow-md hover:shadow-lg rounded-lg text-center text-lg font-semibold text-gray-700 transition duration-300 flex items-center justify-center p-6"
           >
             <FontAwesomeIcon icon={faUserPlus} className="mr-2" /> Add Persons
           </Link>
           <Link
             to="/addincome"
-            className="bg-white shadow p-6 rounded-lg text-center text-lg font-semibold text-gray-700 hover:text-blue-600 transition duration-300 flex items-center justify-center"
+            className="dashboard-link bg-green-200 hover:bg-green-300 shadow-md hover:shadow-lg rounded-lg text-center text-lg font-semibold text-green-700 transition duration-300 flex items-center justify-center p-6"
           >
             <FontAwesomeIcon icon={faDollarSign} className="mr-2" /> Add Income
           </Link>
           <Link
             to="/addexpense"
-            className="bg-white shadow p-6 rounded-lg text-center text-lg font-semibold text-gray-700 hover:text-blue-600 transition duration-300 flex items-center justify-center"
+            className="dashboard-link bg-red-200 hover:bg-red-300 shadow-md hover:shadow-lg rounded-lg text-center text-lg font-semibold text-red-700 transition duration-300 flex items-center justify-center p-6"
           >
             <FontAwesomeIcon icon={faMoneyBillWave} className="mr-2" /> Add Expense
           </Link>
           <Link
             to="/statsi"
-            className="bg-white shadow p-6 rounded-lg text-center text-lg font-semibold text-gray-700 hover:text-blue-600 transition duration-300 flex items-center justify-center"
+            className="dashboard-link bg-white shadow-md hover:shadow-lg rounded-lg text-center text-lg font-semibold text-gray-700 transition duration-300 flex items-center justify-center p-6"
           >
             <FontAwesomeIcon icon={faChartLine} className="mr-2" /> Statistics of Income
           </Link>
           <Link
             to="/statse"
-            className="bg-white shadow p-6 rounded-lg text-center text-lg font-semibold text-gray-700 hover:text-blue-600 transition duration-300 flex items-center justify-center"
+            className="dashboard-link bg-white shadow-md hover:shadow-lg rounded-lg text-center text-lg font-semibold text-gray-700 transition duration-300 flex items-center justify-center p-6"
           >
             <FontAwesomeIcon icon={faChartPie} className="mr-2" /> Statistics of Expense
           </Link>
           <Link
             to="/comparestats"
-            className="bg-white shadow p-6 rounded-lg text-center text-lg font-semibold text-gray-700 hover:text-blue-600 transition duration-300 flex items-center justify-center"
+            className="dashboard-link bg-white shadow-md hover:shadow-lg rounded-lg text-center text-lg font-semibold text-gray-700 transition duration-300 flex items-center justify-center p-6"
           >
             <FontAwesomeIcon icon={faBalanceScale} className="mr-2" /> Comparison of Income vs Expense
           </Link>
           <Link
             to="/listofchanges"
-            className="bg-white shadow p-6 rounded-lg text-center text-lg font-semibold text-gray-700 hover:text-blue-600 transition duration-300 flex items-center justify-center"
+            className="dashboard-link bg-white shadow-md hover:shadow-lg rounded-lg text-center text-lg font-semibold text-gray-700 transition duration-300 flex items-center justify-center p-6"
           >
-            <FontAwesomeIcon icon={faListAlt} className="mr-2" /> List of Changes
+            <FontAwesomeIcon icon={faListAlt} className="mr-2" /> List Of Changes
           </Link>
-          <div className="bg-white shadow p-6 rounded-lg text-center">
-            <label htmlFor="username" className="block text-sm font-semibold mb-2">
-              <FontAwesomeIcon icon={faUser} className="mr-2" /> Enter Username:
-            </label>
-            <input
-              type="text"
-              id="username"
-              value={inputUsername}
-              onChange={(e) => setInputUsername(e.target.value)}
-              className="border border-gray-300 rounded-md py-2 px-4 w-full focus:outline-none focus:border-blue-500"
-            />
-            <button
-              onClick={handleFetchStats}
-              className="mt-4 bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 transition duration-300 w-full"
-            >
-              Fetch Stats
-            </button>
-          </div>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-          <div className="bg-green-100 shadow p-6 rounded-lg">
-            <h2 className="text-2xl font-semibold text-green-700 mb-4 text-center">Total Income</h2>
-            <p className="text-center text-3xl text-green-700">
-              {totalIncome !== null ? `$${totalIncome.toFixed(2)}` : 'Loading...'}
-            </p>
+        <div className="flex justify-center space-x-8">
+          <div className="text-center border border-gray-200 bg-white p-6 rounded-lg shadow-md">
+            <p className="text-lg font-semibold text-green-700 mb-4">Total Income</p>
+            <p className="text-3xl font-bold text-green-800">{totals.totalIncome}</p>
           </div>
-          <div className="bg-red-100 shadow p-6 rounded-lg">
-            <h2 className="text-2xl font-semibold text-red-700 mb-4 text-center">Total Expense</h2>
-            <p className="text-center text-3xl text-red-700">
-              {totalExpense !== null ? `$${totalExpense.toFixed(2)}` : 'Loading...'}
-            </p>
+          <div className="text-center border border-gray-200 bg-white p-6 rounded-lg shadow-md">
+            <p className="text-lg font-semibold text-red-700 mb-4">Total Expense</p>
+            <p className="text-3xl font-bold text-red-800">{totals.totalExpense}</p>
           </div>
         </div>
       </div>

@@ -2,19 +2,33 @@ import React, { useState } from 'react';
 import axios from 'axios';
 
 const AddMemberForm = ({ handleBackButtonClick }) => {
-  const [username, setUsername] = useState('');
   const [memberUsername, setMemberUsername] = useState('');
   const [message, setMessage] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const token = localStorage.getItem('accessToken'); // Retrieve the token from localStorage
     try {
-      const response = await axios.post('http://localhost:3000/add-member', { username, memberUsername });
+      const response = await axios.post(
+        'http://localhost:3000/add-member',
+        { memberUsername },
+        {
+          headers: {
+            Authorization: `Bearer ${token}` // Include the token in the Authorization header
+          }
+        }
+      );
       setMessage(response.data.msg);
-      setUsername('');
       setMemberUsername('');
+          // Block scrolling when component mounts
+    document.body.style.overflow = 'hidden';
+
+    // Re-enable scrolling when component unmounts
+    return () => {
+      document.body.style.overflow = '';
+    };
     } catch (error) {
-      setMessage(error.response.data.msg);
+      setMessage(error.response?.data?.msg || 'Error adding member');
     }
   };
 
@@ -23,17 +37,6 @@ const AddMemberForm = ({ handleBackButtonClick }) => {
       <div className="max-w-md w-full bg-white shadow-md rounded-md p-6">
         <h2 className="text-2xl font-semibold mb-4">Add Member</h2>
         <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label htmlFor="username" className="block text-sm font-semibold mb-2">Your Username:</label>
-            <input
-              type="text"
-              id="username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="border border-gray-300 rounded-md py-2 px-4 w-full focus:outline-none focus:border-blue-500"
-              required
-            />
-          </div>
           <div className="mb-4">
             <label htmlFor="memberUsername" className="block text-sm font-semibold mb-2">Member's Username:</label>
             <input

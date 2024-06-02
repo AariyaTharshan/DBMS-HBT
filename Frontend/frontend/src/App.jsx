@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
 import Home from './components/Home';
 import Login from './components/Login';
 import Signup from './components/Signup';
@@ -11,10 +11,15 @@ import Statsi from './components/Statsi';
 import Statse from './components/Statse';
 import CompareStats from './components/CompareStats';
 import ListOfChanges from './components/ListOfChanges';
+import Header from './components/Header';
 
 const App = () => {
+  const location = useLocation();
+  const shouldDisplayHeader = !['/', '/login', '/signup'].includes(location.pathname);
+
   return (
-    <Router>
+    <div>
+      {shouldDisplayHeader && <Header />}
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
@@ -26,9 +31,9 @@ const App = () => {
         <Route path="/statsi" element={<Statsi />} />
         <Route path="/statse" element={<Statse />} />
         <Route path="/comparestats" element={<CompareStats />} />
-        <Route path="/listofchanges" element={<ListOfChanges />} />
+        <Route path="/listofchanges" element={<ListOfChanges/>} />
       </Routes>
-    </Router>
+    </div>
   );
 };
 

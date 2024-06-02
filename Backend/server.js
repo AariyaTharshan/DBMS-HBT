@@ -4,11 +4,25 @@ const bodyParser = require('body-parser');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
+const asyncHandler = require('express-async-handler');
 require('dotenv').config();
 
 const app = express();
 const port = 3000;
-app.use(cors());
+
+// Middleware
+app.use(bodyParser.json());
+app.use(cookieParser());
+
+// CORS configuration
+const corsOptions = {
+  origin: 'http://localhost:5173', // Front-end URL
+  credentials: true,
+  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+  allowedHeaders: 'Content-Type,Authorization'
+};
+app.use(cors(corsOptions));
 
 // MongoDB connection string
 const mongoURI = process.env.MONGO_URI;
@@ -51,294 +65,283 @@ const ChangeSchema = new mongoose.Schema({
 const User = mongoose.model('User', UserSchema);
 const Change = mongoose.model('Change', ChangeSchema);
 
-// Middleware
-app.use(bodyParser.json());
+const verifyToken = (req, res, next) => {
+  const token = req.headers['authorization']?.split(' ')[1];
+  if (!token) {
+    return res.status(401).json({ msg: 'No token provided' });
+  }
+
+  jwt.verify(token, 'jwt123!', (err, decoded) => {
+    if (err) {
+      return res.status(403).json({ msg: 'Failed to authenticate token' });
+    }
+
+    req.user = decoded;
+    next();
+  });
+};
 
 // Routes
 
 // Signup route
-app.post('/signup', async (req, res) => {
+app.post('/signup', asyncHandler(async (req, res) => {
   const { username, password } = req.body;
 
-  try {
-    const existingUser = await User.findOne({ username });
-    if (existingUser) {
-      return res.status(400).json({ msg: 'User already exists' });
-    }
-
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
-    const newUser = new User({ username, password: hashedPassword });
-    await newUser.save();
-
-    // Generate token after signup
-    const token = jwt.sign({ id: newUser._id }, 'your_jwt_secret', { expiresIn: '1h' });
-    
-    // Redirect to login page after successful signup
-    res.status(201).json({ msg: 'User registered successfully', token });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+  const existingUser = await User.findOne({ username });
+  if (existingUser) {
+    return res.status(400).json({ msg: 'User already exists' });
   }
-});
 
-// Login route
-app.post('/login', async (req, res) => {
+  const salt = await bcrypt.genSalt(10);
+  const hashedPassword = await bcrypt.hash(password, salt);
+
+  const newUser = new User({ username, password: hashedPassword });
+  await newUser.save();
+
+  const token = jwt.sign({ id: newUser._id, username: newUser.username }, 'jwt123!', { expiresIn: '1h' });
+
+  res.cookie('accessToken', token, { httpOnly: true, secure: false, sameSite: 'strict' })
+    .status(201).json({ msg: 'User registered successfully', token });
+}));
+
+app.post('/login', asyncHandler(async (req, res) => {
   const { username, password } = req.body;
 
-  try {
-    // Find user by username
-    const user = await User.findOne({ username });
-    if (!user) {
-      return res.status(400).json({ msg: 'User not found' });
-    }
-
-    // Check if password matches
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(400).json({ msg: 'Invalid credentials' });
-    }
-
-    // Generate token
-    const token = jwt.sign({ id: user._id }, 'your_jwt_secret', { expiresIn: '1h' });
-
-    // Send token in response
-    res.status(200).json({ msg: 'Login successful', token });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+  const user = await User.findOne({ username });
+  if (!user) {
+    console.log('User not found');
+    return res.status(400).json({ msg: 'User not found' });
   }
-});
+
+  const isMatch = await bcrypt.compare(password, user.password);
+  if (!isMatch) {
+    console.log('Password does not match');
+    return res.status(400).json({ msg: 'Invalid credentials' });
+  }
+
+  const token = jwt.sign({ id: user._id, username: user.username }, 'jwt123!', { expiresIn: '1h' });
+
+  res.status(200).json({ msg: 'Login successful', token });
+}));
 
 // Add member route
-app.post('/add-member', async (req, res) => {
-  const { username, memberUsername } = req.body;
+app.post('/add-member', verifyToken, asyncHandler(async (req, res) => {
+  const { memberUsername } = req.body;
+  const { username: loggedInUsername } = req.user;
 
-  try {
-    // Check if the member already exists
-    const user = await User.findOne({ username });
-    if (!user) {
-      return res.status(400).json({ msg: 'User not found' });
-    }
-
-    const existingMember = user.members.find(member => member.username === memberUsername);
-    if (existingMember) {
-      return res.status(400).json({ msg: 'Member already exists' });
-    }
-
-    // Add the member
-    user.members.push({ username: memberUsername, incomes: [], expenses: [] });
-    await user.save();
-
-    // Log the change
-    const newChange = new Change({ username, changeType: 'addition', description: `Added member ${memberUsername}` });
-    await newChange.save();
-
-    res.status(200).json({ msg: 'Member added successfully' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+  const user = await User.findOne({ username: loggedInUsername });
+  if (!user) {
+    return res.status(400).json({ msg: 'User not found' });
   }
-});
+
+  const existingMember = user.members.find(member => member.username === memberUsername);
+  if (existingMember) {
+    return res.status(400).json({ msg: 'Member already exists' });
+  }
+
+  user.members.push({ username: memberUsername, incomes: [], expenses: [] });
+  await user.save();
+
+  const newChange = new Change({ username: loggedInUsername, changeType: 'addition', description: `Added member ${memberUsername}` });
+  await newChange.save();
+
+  res.status(200).json({ msg: 'Member added successfully' });
+}));
 
 // Add income route
-app.post('/add-income', async (req, res) => {
-  const { username, memberUsername, amount, description } = req.body;
+app.post('/add-income', verifyToken, asyncHandler(async (req, res) => {
+  const { memberUsername, amount, description } = req.body;
+  const { username: loggedInUsername } = req.user;
 
-  try {
-    const user = await User.findOne({ username });
-    if (!user) {
-      return res.status(400).json({ msg: 'User not found' });
-    }
-
-    const member = user.members.find(member => member.username === memberUsername);
-    if (!member) {
-      return res.status(400).json({ msg: 'Member not found' });
-    }
-
-    member.incomes.push({ amount, description });
-    await user.save();
-
-    // Log the change
-    const newChange = new Change({ username, changeType: 'income addition', description: `Added income ${amount} to member ${memberUsername}` });
-    await newChange.save();
-
-    res.status(200).json({ msg: 'Income added successfully' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+  const user = await User.findOne({ username: loggedInUsername });
+  if (!user) {
+    return res.status(400).json({ msg: 'User not found' });
   }
-});
+
+  const member = user.members.find(member => member.username === memberUsername);
+  if (!member) {
+    return res.status(400).json({ msg: 'Member not found' });
+  }
+
+  member.incomes.push({ amount, description });
+  await user.save();
+
+  const newChange = new Change({ username: loggedInUsername, changeType: 'income addition', description: `Added income ${amount} to member ${memberUsername}` });
+  await newChange.save();
+
+  res.status(200).json({ msg: 'Income added successfully' });
+}));
 
 // Add expense route
-app.post('/add-expense', async (req, res) => {
-  const { username, memberUsername, amount, category, description } = req.body;
+app.post('/add-expense', verifyToken, asyncHandler(async (req, res) => {
+  const { memberUsername, amount, category, description } = req.body;
+  const { username: loggedInUsername } = req.user;
 
-  try {
-    const user = await User.findOne({ username });
-    if (!user) {
-      return res.status(400).json({ msg: 'User not found' });
-    }
-
-    const member = user.members.find(member => member.username === memberUsername);
-    if (!member) {
-      return res.status(400).json({ msg: 'Member not found' });
-    }
-
-    member.expenses.push({ amount, category, description });
-    await user.save();
-
-    // Log the change
-    const newChange = new Change({ username, changeType: 'expense addition', description: `Added expense ${amount} to member ${memberUsername}` });
-    await newChange.save();
-
-    res.status(200).json({ msg: 'Expense added successfully' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+  const user = await User.findOne({ username: loggedInUsername });
+  if (!user) {
+    return res.status(400).json({ msg: 'User not found' });
   }
-});
+
+  const member = user.members.find(member => member.username === memberUsername);
+  if (!member) {
+    return res.status(400).json({ msg: 'Member not found' });
+  }
+
+  member.expenses.push({ amount, category, description });
+  await user.save();
+
+  const newChange = new Change({ username: loggedInUsername, changeType: 'expense addition', description: `Added expense ${amount} to member ${memberUsername}` });
+  await newChange.save();
+
+  res.status(200).json({ msg: 'Expense added successfully' });
+}));
 
 // Income stats route
-app.get('/income-stats/:username', async (req, res) => {
+app.get('/income-stats/:username', verifyToken, asyncHandler(async (req, res) => {
   const { username } = req.params;
+  const { username: loggedInUsername } = req.user;
 
-  try {
-    const user = await User.findOne({ username });
-    if (!user) {
-      return res.status(400).json({ msg: 'User not found' });
-    }
-
-    const stats = user.members.map(member => {
-      const totalIncome = member.incomes.reduce((acc, income) => acc + income.amount, 0);
-      return {
-        memberUsername: member.username,
-        totalIncome
-      };
-    });
-
-    res.status(200).json(stats);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+  if (username !== loggedInUsername) {
+    return res.status(403).json({ msg: 'Access denied. You can only view stats for your own username.' });
   }
-});
+
+  const user = await User.findOne({ username });
+  if (!user) {
+    return res.status(400).json({ msg: 'User not found' });
+  }
+
+  const stats = user.members.map(member => {
+    const totalIncome = member.incomes.reduce((acc, income) => acc + income.amount, 0);
+    return {
+      memberUsername: member.username,
+      totalIncome
+    };
+  });
+
+  res.status(200).json(stats);
+}));
 
 // Expense stats route
-app.get('/expense-stats/:username', async (req, res) => {
+app.get('/expense-stats/:username', verifyToken, asyncHandler(async (req, res) => {
   const { username } = req.params;
+  const { username: loggedInUsername } = req.user;
 
-  try {
-    const user = await User.findOne({ username });
-    if (!user) {
-      return res.status(400).json({ msg: 'User not found' });
-    }
-
-    const stats = user.members.map(member => {
-      const totalExpense = member.expenses.reduce((acc, expense) => acc + expense.amount, 0);
-      return {
-        memberUsername: member.username,
-        totalExpense
-      };
-    });
-
-    res.status(200).json(stats);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+  if (username !== loggedInUsername) {
+    return res.status(403).json({ msg: 'Access denied. You can only view stats for your own username.' });
   }
-});
 
-// Compare income and expense route
-app.get('/compare-stats/:username', async (req, res) => {
+  const user = await User.findOne({ username });
+  if (!user) {
+    return res.status(400).json({ msg: 'User not found' });
+  }
+
+  const stats = user.members.map(member => {
+    const totalExpense = member.expenses.reduce((acc, expense) => acc + expense.amount, 0);
+    return {
+      memberUsername: member.username,
+      totalExpense
+    };
+  });
+
+  res.status(200).json(stats);
+}));
+
+// Compare stats route
+app.get('/compare-stats/:username', verifyToken, asyncHandler(async (req, res) => {
   const { username } = req.params;
+  const { username: loggedInUsername } = req.user;
 
-  try {
-    const user = await User.findOne({ username });
-    if (!user) {
-      return res.status(400).json({ msg: 'User not found' });
-    }
-
-    const stats = user.members.map(member => {
-      const totalIncome = member.incomes.reduce((acc, income) => acc + income.amount, 0);
-      const totalExpense = member.expenses.reduce((acc, expense) => acc + expense.amount, 0);
-      return {
-        memberUsername: member.username,
-        totalIncome,
-        totalExpense
-      };
-    });
-
-    res.status(200).json(stats);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+  if (username !== loggedInUsername) {
+    return res.status(403).json({ msg: 'Access denied. You can only compare stats for your own username.' });
   }
-});
 
-// Route to fetch total income of all members
-app.get('/total-income/:username', async (req, res) => {
-  const { username } = req.params;
-
-  try {
-    const user = await User.findOne({ username });
-    if (!user) {
-      return res.status(400).json({ msg: 'User not found' });
-    }
-
-    const totalIncome = user.members.reduce((acc, member) => {
-      return acc + member.incomes.reduce((sum, income) => sum + income.amount, 0);
-    }, 0);
-
-    res.status(200).json({ totalIncome });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+  const user = await User.findOne({ username });
+  if (!user) {
+    return res.status(400).json({ msg: 'User not found' });
   }
-});
 
-// Route to fetch total expense of all members
-app.get('/total-expense/:username', async (req, res) => {
-  const { username } = req.params;
+  const stats = user.members.map(member => {
+    const totalIncome = member.incomes.reduce((acc, income) => acc + income.amount, 0);
+    const totalExpense = member.expenses.reduce((acc, expense) => acc + expense.amount, 0);
+    return {
+      memberUsername: member.username,
+      totalIncome,
+      totalExpense
+    };
+  });
 
-  try {
-    const user = await User.findOne({ username });
-    if (!user) {
-      return res.status(400).json({ msg: 'User not found' });
-    }
-
-    const totalExpense = user.members.reduce((acc, member) => {
-      return acc + member.expenses.reduce((sum, expense) => sum + expense.amount, 0);
-    }, 0);
-
-    res.status(200).json({ totalExpense });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Route to fetch list of changes
-app.get('/changes/:username?', async (req, res) => {
-  const { username } = req.params;
-
-  try {
-    // Find changes, optionally filtering by username
-    const query = username ? { username } : {};
-    const changes = await Change.find(query).sort({ date: -1 });
-    res.status(200).json(changes);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
+  res.status(200).json(stats);
+}));
 
 // Route to fetch members for a given username
-app.get('/members/:username', async (req, res) => {
+app.get('/members/:username', verifyToken, asyncHandler(async (req, res) => {
   const { username } = req.params;
+  const { username: loggedInUsername } = req.user;
 
+  if (username !== loggedInUsername) {
+    return res.status(403).json({ msg: 'Access denied. You can only view members for your own username.' });
+  }
+
+  const user = await User.findOne({ username });
+  if (!user) {
+    return res.status(400).json({ msg: 'User not found' });
+  }
+
+  res.status(200).json(user.members);
+}));
+
+app.get('/change-logs/:username', verifyToken, asyncHandler(async (req, res) => {
+  const { username: loggedInUsername } = req.user;
+
+  console.log('Received request for username:', loggedInUsername);
+
+  let changes = await Change.find({ username: loggedInUsername });
+  if (!changes.length) {
+    console.log('No changes found for username:', loggedInUsername);
+    return res.status(404).json({ msg: 'No change logs found' });
+  }
+
+  // Sorting by date in descending order
+  changes = changes.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  // Filtering by type if specified
+  const { type } = req.query;
+  console.log('Filtering changes by type:', type);
+  if (type && (type === 'income addition' || type === 'expense addition')) {
+    changes = changes.filter(change => change.changeType === type);
+  }
+
+  res.status(200).json(changes);
+}));
+
+
+
+// New route to fetch total income and expense
+app.get('/total-stats', verifyToken, asyncHandler(async (req, res) => {
   try {
-    const user = await User.findOne({ username });
+    const { username: loggedInUsername } = req.user;
+
+    const user = await User.findOne({ username: loggedInUsername });
     if (!user) {
-      return res.status(400).json({ msg: 'User not found' });
+      return res.status(404).json({ msg: 'User not found' });
     }
 
-    res.status(200).json(user.members);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+    const totals = user.members.reduce((acc, member) => {
+      const totalIncome = member.incomes.reduce((acc, income) => acc + income.amount, 0);
+      const totalExpense = member.expenses.reduce((acc, expense) => acc + expense.amount, 0);
+      acc.totalIncome += totalIncome;
+      acc.totalExpense += totalExpense;
+      return acc;
+    }, { totalIncome: 0, totalExpense: 0 });
+
+    res.status(200).json(totals);
+  } catch (error) {
+    console.error('Error fetching total stats:', error);
+    res.status(500).json({ msg: 'Internal server error' });
   }
-});
+}));
+
+
 
 
 app.listen(port, () => console.log(`Server running on port ${port}`));

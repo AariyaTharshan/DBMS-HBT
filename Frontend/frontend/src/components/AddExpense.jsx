@@ -1,20 +1,34 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-const AddExpense = () => {
+const AddIncome = () => {
   const [username, setUsername] = useState('');
   const [memberUsername, setMemberUsername] = useState('');
   const [amount, setAmount] = useState('');
-  const [category, setCategory] = useState('');
   const [description, setDescription] = useState('');
   const [message, setMessage] = useState('');
   const [members, setMembers] = useState([]);
 
   useEffect(() => {
+    // Block scrolling when component mounts
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      // Re-enable scrolling when component unmounts
+      document.body.style.overflow = '';
+    };
+  }, []);
+
+  useEffect(() => {
     if (username) {
       const fetchMembers = async () => {
+        const token = localStorage.getItem('accessToken');
         try {
-          const response = await axios.get(`http://localhost:3000/members/${username}`);
+          const response = await axios.get(`http://localhost:3000/members/${username}`, {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          });
           setMembers(response.data);
         } catch (error) {
           console.error('Error fetching members:', error);
@@ -27,23 +41,25 @@ const AddExpense = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const token = localStorage.getItem('accessToken');
     try {
-      const response = await axios.post('http://localhost:3000/add-expense', {
-        username,
-        memberUsername,
-        amount,
-        category,
-        description
-      });
+      const response = await axios.post(
+        'http://localhost:3000/add-expense',
+        { username, memberUsername, amount, description },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
       setMessage(response.data.msg);
       setUsername('');
       setMemberUsername('');
       setAmount('');
-      setCategory('');
       setDescription('');
       setMembers([]);
     } catch (error) {
-      setMessage(error.response?.data?.msg || 'Error adding expense');
+      setMessage(error.response?.data?.msg || 'Error adding income');
     }
   };
 
@@ -91,11 +107,11 @@ const AddExpense = () => {
             />
           </div>
           <div className="mb-4">
-            <label htmlFor="category" className="block text-sm font-semibold mb-2">Category:</label>
+            <label htmlFor="description" className="block text-sm font-semibold mb-2">Category:</label>
             <input
               type="text"
-              id="category"
-              value={category}
+              id="description"
+              value={description}
               onChange={(e) => setCategory(e.target.value)}
               className="border border-gray-300 rounded-md py-2 px-4 w-full focus:outline-none focus:border-blue-500"
               required
@@ -121,4 +137,4 @@ const AddExpense = () => {
   );
 };
 
-export default AddExpense;
+export default AddIncome;

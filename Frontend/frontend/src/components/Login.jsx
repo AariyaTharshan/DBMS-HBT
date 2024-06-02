@@ -11,14 +11,16 @@ const Login = () => {
     try {
       const response = await axios.post('http://localhost:3000/login', { username, password });
       console.log(response.data);
-      
-      // Check if login was successful
+
       if (response.status === 200) {
+        console.log('Login successful');
+        // Save token to localStorage
+        localStorage.setItem('accessToken', response.data.token);
         // Redirect to dashboard
         window.location.href = '/dashboard';
       }
     } catch (error) {
-      console.error(error);
+      console.error('Error during login:', error);
       // Show error message
       setShowError(true);
     }

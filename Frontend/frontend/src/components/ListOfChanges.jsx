@@ -1,98 +1,73 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-const ListOfChanges = () => {
+const ListOfChanges = ({ username }) => {
   const [changes, setChanges] = useState([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [username, setUsername] = useState('');
-  const [page, setPage] = useState(1);
-  const [itemsPerPage] = useState(10);
-
-  const fetchChanges = async (username) => {
-    try {
-      const response = await axios.get(`http://localhost:3000/changes/${username}`);
-      setChanges(response.data);
-    } catch (error) {
-      console.error('Error fetching changes:', error);
-    }
-  };
+  const [error, setError] = useState('');
+  const [filter, setFilter] = useState('all');
 
   useEffect(() => {
-    if (username) {
-      fetchChanges(username);
-    }
-  }, [username]);
+    const fetchChanges = async () => {
+      const token = localStorage.getItem('accessToken');
+      if (!token) {
+        setError('No token found');
+        return;
+      }
 
-  const handleSearch = (e) => {
-    setSearchTerm(e.target.value);
-  };
+      try {
+        let url = `http://localhost:3000/change-logs/${username}`;
+        if (filter !== 'all') {
+          // Adjusted the filter options to match the backend types
+          if (filter === 'income') {
+            url += `?type=income addition`;
+          } else if (filter === 'expense') {
+            url += `?type=expense addition`;
+          } else {
+            url += `?type=${filter}`;
+          }
+        }
+        const response = await axios.get(url, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        setChanges(response.data);
+      } catch (err) {
+        setError(err.response ? err.response.data.msg : 'Error fetching changes');
+      }
+    };
 
-  const filteredChanges = changes.filter(change => 
-    (change.username && change.username.includes(searchTerm)) || 
-    (change.description && change.description.includes(searchTerm))
-  );
-
-  const paginatedChanges = filteredChanges.slice((page - 1) * itemsPerPage, page * itemsPerPage);
+    fetchChanges();
+  }, [username, filter]);
 
   return (
-    <div className="bg-gray-100 min-h-screen p-8">
-      <h1 className="text-4xl font-bold mb-8 text-center text-gray-800">List of Changes</h1>
-      <div className="mb-4 flex justify-between items-center">
-        <input
-          type="text"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          placeholder="Enter username to filter changes..."
-          className="border border-gray-300 rounded-md py-2 px-4 w-full max-w-xs focus:outline-none focus:border-blue-500"
-        />
-        <input
-          type="text"
-          value={searchTerm}
-          onChange={handleSearch}
-          placeholder="Search changes..."
-          className="border border-gray-300 rounded-md py-2 px-4 w-full max-w-xs focus:outline-none focus:border-blue-500 ml-4"
-        />
-      </div>
-      <table className="min-w-full bg-white shadow rounded-lg">
-        <thead>
-          <tr>
-            <th className="py-2 px-4 border-b">Date</th>
-            <th className="py-2 px-4 border-b">User</th>
-            <th className="py-2 px-4 border-b">Type</th>
-            <th className="py-2 px-4 border-b">Description</th>
-          </tr>
-        </thead>
-        <tbody>
-          {paginatedChanges.map((change, index) => (
-            <tr key={index}>
-              <td className="py-2 px-4 border-b">{new Date(change.date).toLocaleString()}</td>
-              <td className="py-2 px-4 border-b">{change.username}</td>
-              <td className={`py-2 px-4 border-b capitalize ${change.type === 'income' ? 'text-green-500' : change.type === 'expense' ? 'text-red-500' : ''}`}>
-                {change.type}
-              </td>
-              <td className="py-2 px-4 border-b">{change.description}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <div className="mt-4 flex flex-col items-center">
-        <div className="flex justify-center mb-4">
-          <button
-            onClick={() => setPage(page - 1)}
-            disabled={page === 1}
-            className="bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 transition duration-300 mr-2"
-          >
-            Previous
-          </button>
-          <button
-            onClick={() => setPage(page + 1)}
-            disabled={page * itemsPerPage >= filteredChanges.length}
-            className="bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 transition duration-300"
-          >
-            Next
-          </button>
+    <div className="bg-gray-200 min-h-screen">
+      <div className="container mx-auto p-6">
+        <h1 className="text-3xl font-bold mb-8 text-gray-800">Change Logs</h1>
+        {error && <p className="text-red-600 mb-6">{error}</p>}
+        <div className="flex justify-center mb-4 space-x-4">
+          <button className={`px-4 py-2 bg-white rounded-lg border border-gray-300 ${filter === 'all' ? 'bg-gray-300' : ''}`} onClick={() => setFilter('all')}>All</button>
+          <button className={`px-4 py-2 bg-white rounded-lg border border-gray-300 ${filter === 'income' ? 'bg-gray-300' : ''}`} onClick={() => setFilter('income')}>Income</button>
+          <button className={`px-4 py-2 bg-white rounded-lg border border-gray-300 ${filter === 'expense' ? 'bg-gray-300' : ''}`} onClick={() => setFilter('expense')}>Expense</button>
         </div>
-        <a href="/dashboard" className="block text-center font-semibold text-blue-500 mt-4 hover:underline">Back to Dashboard</a>
+        <ul className="space-y-6">
+          {changes.map(change => (
+            <li key={change._id} className="p-6 bg-white border border-gray-300 rounded-lg shadow-lg transition duration-300 transform hover:scale-105 hover:shadow-xl">
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-lg font-semibold text-gray-700">Type:</p>
+                <p className="text-lg font-normal text-gray-900">{change.changeType}</p>
+              </div>
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-lg font-semibold text-gray-700">Description:</p>
+                <p className="text-lg font-normal text-gray-900">{change.description}</p>
+              </div>
+              <div className="flex items-center justify-between">
+                <p className="text-lg font-semibold text-gray-700">Date:</p>
+                <p className="text-lg font-normal text-gray-900">{new Date(change.date).toLocaleString()}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
       </div>
     </div>
   );

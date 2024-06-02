@@ -10,10 +10,25 @@ const AddIncome = () => {
   const [members, setMembers] = useState([]);
 
   useEffect(() => {
+    // Block scrolling when component mounts
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      // Re-enable scrolling when component unmounts
+      document.body.style.overflow = '';
+    };
+  }, []);
+
+  useEffect(() => {
     if (username) {
       const fetchMembers = async () => {
+        const token = localStorage.getItem('accessToken');
         try {
-          const response = await axios.get(`http://localhost:3000/members/${username}`);
+          const response = await axios.get(`http://localhost:3000/members/${username}`, {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          });
           setMembers(response.data);
         } catch (error) {
           console.error('Error fetching members:', error);
@@ -26,13 +41,17 @@ const AddIncome = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const token = localStorage.getItem('accessToken');
     try {
-      const response = await axios.post('http://localhost:3000/add-income', {
-        username,
-        memberUsername,
-        amount,
-        description
-      });
+      const response = await axios.post(
+        'http://localhost:3000/add-income',
+        { username, memberUsername, amount, description },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
       setMessage(response.data.msg);
       setUsername('');
       setMemberUsername('');

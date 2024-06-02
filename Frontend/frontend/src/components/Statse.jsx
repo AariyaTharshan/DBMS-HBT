@@ -26,10 +26,25 @@ const Statse = () => {
   const [message, setMessage] = useState('');
 
   useEffect(() => {
+    // Block scrolling when component mounts
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      // Re-enable scrolling when component unmounts
+      document.body.style.overflow = '';
+    };
+  }, []);
+
+  useEffect(() => {
     const fetchData = async () => {
       if (username) {
+        const token = localStorage.getItem('accessToken');
         try {
-          const response = await axios.get(`http://localhost:3000/expense-stats/${encodeURIComponent(username)}`);
+          const response = await axios.get(`http://localhost:3000/expense-stats/${encodeURIComponent(username)}`, {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          });
           setStats(response.data);
           setMessage('');
         } catch (error) {
@@ -47,7 +62,7 @@ const Statse = () => {
       {
         label: 'Total Expense',
         data: stats.map(stat => stat.totalExpense),
-        backgroundColor: 'rgba(255, 99, 132, 0.6)',
+        backgroundColor: 'rgba(255, 99, 132, 0.6)', // Red for expenses
         borderColor: 'rgba(255, 99, 132, 1)',
         borderWidth: 1,
       },

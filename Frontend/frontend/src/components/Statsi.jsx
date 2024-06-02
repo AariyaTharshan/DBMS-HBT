@@ -26,10 +26,25 @@ const Statsi = () => {
   const [message, setMessage] = useState('');
 
   useEffect(() => {
+    // Block scrolling when component mounts
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      // Re-enable scrolling when component unmounts
+      document.body.style.overflow = '';
+    };
+  }, []);
+
+  useEffect(() => {
     const fetchData = async () => {
       if (username) {
+        const token = localStorage.getItem('accessToken');
         try {
-          const response = await axios.get(`http://localhost:3000/income-stats/${encodeURIComponent(username)}`);
+          const response = await axios.get(`http://localhost:3000/income-stats/${encodeURIComponent(username)}`, {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          });
           setStats(response.data);
           setMessage('');
         } catch (error) {
@@ -39,6 +54,11 @@ const Statsi = () => {
       }
     };
     fetchData();
+
+    // Re-enable scrolling when component unmounts
+    return () => {
+      document.body.style.overflow = '';
+    };
   }, [username]);
 
   const data = {

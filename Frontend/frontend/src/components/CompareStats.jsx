@@ -1,24 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Bar } from 'react-chartjs-2';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-} from 'chart.js';
-
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend
-);
+import 'tailwindcss/tailwind.css'; // Import Tailwind CSS
 
 const CompareStats = () => {
   const [stats, setStats] = useState([]);
@@ -26,10 +9,24 @@ const CompareStats = () => {
   const [message, setMessage] = useState('');
 
   useEffect(() => {
+    // Block scrolling when component mounts
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      // Re-enable scrolling when component unmounts
+      document.body.style.overflow = '';
+    };
+  }, []);
+
+  useEffect(() => {
     const fetchData = async () => {
       if (username) {
         try {
-          const response = await axios.get(`http://localhost:3000/compare-stats/${encodeURIComponent(username)}`);
+          const response = await axios.get(`http://localhost:3000/compare-stats/${encodeURIComponent(username)}`, {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
+            }
+          });
           setStats(response.data);
           setMessage('');
         } catch (error) {
@@ -54,7 +51,7 @@ const CompareStats = () => {
       {
         label: 'Total Expense',
         data: stats.map(stat => stat.totalExpense),
-        backgroundColor: 'rgba(255, 99, 132, 0.6)', // Red for expenses
+        backgroundColor: 'rgba(255, 99, 132, 0.6)',
         borderColor: 'rgba(255, 99, 132, 1)',
         borderWidth: 1,
       },
@@ -72,7 +69,7 @@ const CompareStats = () => {
   return (
     <div className="min-h-screen bg-gray-200 flex items-center justify-center">
       <div className="max-w-md w-full bg-white shadow-md rounded-md p-6">
-        <h2 className="text-2xl font-semibold mb-4">Income vs Expense Statistics</h2>
+        <h2 className="text-2xl font-semibold mb-4">Income VS Expense Statistics</h2>
         <div className="mb-4">
           <label htmlFor="username" className="block text-sm font-semibold mb-2">Username:</label>
           <input
