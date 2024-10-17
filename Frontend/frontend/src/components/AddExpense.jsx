@@ -24,7 +24,7 @@ const AddIncome = () => {
       const fetchMembers = async () => {
         const token = localStorage.getItem('accessToken');
         try {
-          const response = await axios.get(`https://dbms-hbt.onrender.com/${username}`, {
+          const response = await axios.get(`https://dbms-hbt.onrender.com/members/${username}`, {
             headers: {
               Authorization: `Bearer ${token}`
             }
