@@ -15,7 +15,7 @@ const ListOfChanges = ({ username }) => {
       }
 
       try {
-        let url = `http://localhost:3000/change-logs/${username}`;
+        let url = `https://dbms-hbt.onrender.com/change-logs/${username}`;
         if (filter !== 'all') {
           // Adjusted the filter options to match the backend types
           if (filter === 'income') {
