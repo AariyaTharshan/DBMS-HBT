@@ -11,7 +11,7 @@ const Dashboard = () => {
     const fetchTotalStats = async () => {
       try {
         const token = localStorage.getItem('accessToken');
-        const response = await axios.get('http://localhost:3000/total-stats', {
+        const response = await axios.get('https://dbms-hbt.onrender.com/total-stats', {
           headers: {
             Authorization: `Bearer ${token}`,
           },
