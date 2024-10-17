@@ -17,7 +17,7 @@ app.use(cookieParser());
 
 // CORS configuration
 const corsOptions = {
-  origin: 'http://localhost:5173', // Front-end URL
+  origin: 'https://home-budget-tracker-one.vercel.app/', // Front-end URL
   credentials: true,
   methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
   allowedHeaders: 'Content-Type,Authorization'
