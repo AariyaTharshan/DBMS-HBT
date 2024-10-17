@@ -40,7 +40,7 @@ const Statse = () => {
       if (username) {
         const token = localStorage.getItem('accessToken');
         try {
-          const response = await axios.get(`http://localhost:3000/expense-stats/${encodeURIComponent(username)}`, {
+          const response = await axios.get(`https://dbms-hbt.onrender.com/expense-stats/${encodeURIComponent(username)}`, {
             headers: {
               Authorization: `Bearer ${token}`
             }
