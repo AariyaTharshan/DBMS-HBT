@@ -10,7 +10,7 @@ const AddMemberForm = ({ handleBackButtonClick }) => {
     const token = localStorage.getItem('accessToken'); // Retrieve the token from localStorage
     try {
       const response = await axios.post(
-        'http://localhost:3000/add-member',
+        'https://dbms-hbt.onrender.com/add-member',
         { memberUsername },
         {
           headers: {
