@@ -16,7 +16,7 @@ const Signup = () => {
         return;
       }
 
-      const response = await axios.post('http://localhost:3000/signup', { username, password });
+      const response = await axios.post('https://dbms-hbt.onrender.com/signup', { username, password });
       console.log(response.data);
       
       // Check if signup was successful
