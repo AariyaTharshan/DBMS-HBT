@@ -22,7 +22,7 @@ const CompareStats = () => {
     const fetchData = async () => {
       if (username) {
         try {
-          const response = await axios.get(`http://localhost:3000/compare-stats/${encodeURIComponent(username)}`, {
+          const response = await axios.get(`https://dbms-hbt.onrender.com/compare-stats/${encodeURIComponent(username)}`, {
             headers: {
               'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
             }
