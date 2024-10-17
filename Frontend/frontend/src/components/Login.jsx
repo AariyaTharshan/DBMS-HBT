@@ -9,7 +9,7 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post('http://localhost:3000/login', { username, password });
+      const response = await axios.post('https://dbms-hbt.onrender.com/login', { username, password });
       console.log(response.data);
 
       if (response.status === 200) {
