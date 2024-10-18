@@ -17,7 +17,7 @@ app.use(cookieParser());
 
 // CORS configuration
 const corsOptions = {
-  origin: 'https://dbms-hbt-1.onrender.com/', // Front-end URL
+  origin: 'https://dbms-hbt-1.onrender.com', // Front-end URL
   credentials: true,
   methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
   allowedHeaders: 'Content-Type,Authorization'
