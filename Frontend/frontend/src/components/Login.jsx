@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 const Login = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showError, setShowError] = useState(false);
+
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -17,7 +20,7 @@ const Login = () => {
         // Save token to localStorage
         localStorage.setItem('accessToken', response.data.token);
         // Redirect to dashboard
-        window.location.href = '/dashboard';
+        navigate('/dashboard');
       }
     } catch (error) {
       console.error('Error during login:', error);
