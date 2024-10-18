@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
-const AddIncome = () => {
+const AddExpense = () => {
   const [username, setUsername] = useState('');
   const [memberUsername, setMemberUsername] = useState('');
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [message, setMessage] = useState('');
   const [members, setMembers] = useState([]);
+
+  const navigate = useNavigate(); // useNavigate hook
 
   useEffect(() => {
     // Block scrolling when component mounts
@@ -112,7 +115,7 @@ const AddIncome = () => {
               type="text"
               id="description"
               value={description}
-              onChange={(e) => setCategory(e.target.value)}
+              onChange={(e) => setDescription(e.target.value)}
               className="border border-gray-300 rounded-md py-2 px-4 w-full focus:outline-none focus:border-blue-500"
               required
             />
@@ -129,7 +132,15 @@ const AddIncome = () => {
             />
           </div>
           <button type="submit" className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded focus:outline-none focus:shadow-outline">Add Expense</button>
-          <a href="https://dbms-hbt.vercel.app/dashboard" className="block text-center font-semibold text-blue-500 mt-4 hover:underline">Back to Dashboard</a>
+          
+          {/* Replace anchor with button for navigation */}
+          <button
+            type="button"
+            onClick={() => navigate('/dashboard')}
+            className="block w-full text-center font-semibold text-blue-500 mt-4 hover:underline"
+          >
+            Back to Dashboard
+          </button>
         </form>
         {message && <p className="text-sm mt-4">{message}</p>}
       </div>
@@ -137,4 +148,4 @@ const AddIncome = () => {
   );
 };
 
-export default AddIncome;
+export default AddExpense;
