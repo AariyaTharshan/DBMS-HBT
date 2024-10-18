@@ -129,7 +129,7 @@ const AddIncome = () => {
             />
           </div>
           <button type="submit" className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded focus:outline-none focus:shadow-outline">Add Expense</button>
-          <a href="/dashboard" className="block text-center font-semibold text-blue-500 mt-4 hover:underline">Back to Dashboard</a>
+          <a href="https://dbms-hbt.vercel.app/dashboard" className="block text-center font-semibold text-blue-500 mt-4 hover:underline">Back to Dashboard</a>
         </form>
         {message && <p className="text-sm mt-4">{message}</p>}
       </div>
