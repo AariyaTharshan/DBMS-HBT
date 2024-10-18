@@ -18,7 +18,7 @@ const App = () => {
   const shouldDisplayHeader = !['/', '/login', '/signup'].includes(location.pathname);
 
   return (
-    <div>
+    <BrowserRouter>
       {shouldDisplayHeader && <Header />}
       <Routes>
         <Route path="/" element={<Home />} />
@@ -33,7 +33,7 @@ const App = () => {
         <Route path="/comparestats" element={<CompareStats />} />
         <Route path="/listofchanges" element={<ListOfChanges/>} />
       </Routes>
-    </div>
+    </BrowserRouter>
   );
 };
 
