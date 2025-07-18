@@ -44,7 +44,7 @@ const AddIncome = () => {
     const token = localStorage.getItem('accessToken');
     try {
       const response = await axios.post(
-        'http://localhost:3000/add-income',
+        'https://dbms-hbt.onrender.com/add-income',
         { username, memberUsername, amount, description },
         {
           headers: {

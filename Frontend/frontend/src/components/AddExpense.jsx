@@ -47,7 +47,7 @@ const AddExpense = () => {
     const token = localStorage.getItem('accessToken');
     try {
       const response = await axios.post(
-        'http://localhost:3000/add-expense',
+        'https://dbms-hbt.onrender.com/add-expense',
         { username, memberUsername, amount, description },
         {
           headers: {
